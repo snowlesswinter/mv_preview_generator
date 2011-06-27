@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mv_preview_generator", "mv_preview_generator.vcxproj", "{AA766D23-767D-4F2C-A272-445C79B0A781}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chromium", "source\third_party\chromium\Chromium.vcxproj", "{FBC684D0-36B4-4A99-92B5-259F1AA9EC40}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AA766D23-767D-4F2C-A272-445C79B0A781}.Debug|Win32.ActiveCfg = Debug|Win32
+		{AA766D23-767D-4F2C-A272-445C79B0A781}.Debug|Win32.Build.0 = Debug|Win32
+		{AA766D23-767D-4F2C-A272-445C79B0A781}.Release|Win32.ActiveCfg = Release|Win32
+		{AA766D23-767D-4F2C-A272-445C79B0A781}.Release|Win32.Build.0 = Release|Win32
+		{FBC684D0-36B4-4A99-92B5-259F1AA9EC40}.Debug|Win32.ActiveCfg = Debug|Win32
+		{FBC684D0-36B4-4A99-92B5-259F1AA9EC40}.Debug|Win32.Build.0 = Debug|Win32
+		{FBC684D0-36B4-4A99-92B5-259F1AA9EC40}.Release|Win32.ActiveCfg = Release|Win32
+		{FBC684D0-36B4-4A99-92B5-259F1AA9EC40}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
