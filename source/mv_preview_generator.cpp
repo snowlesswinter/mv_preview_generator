@@ -259,19 +259,19 @@ void MvPreviewGenerator::Generate(const path& mvPath, int64 time)
     // Initialize RGB format frame.
     unique_ptr<AVFrame, void (*)(void*)> frameRGB(avcodec_alloc_frame(),
                                                   av_free);
-    const int bufSize = avpicture_get_size(PIX_FMT_RGB24, codecCont->width,
-                                           codecCont->height);
+    const int previewWidth = codecCont->width / 6;
+    const int previewHeight = codecCont->height / 6;
+    const int bufSize = avpicture_get_size(PIX_FMT_RGB24, previewWidth,
+                                           previewHeight);
     avpicture_fill(reinterpret_cast<AVPicture*>(frameRGB.get()),
                     reinterpret_cast<uint8_t*>(av_malloc(bufSize)),
-                    PIX_FMT_RGB24, codecCont->width, codecCont->height);
+                    PIX_FMT_RGB24, previewWidth, previewHeight);
 
     SwsContext* scaleCont = sws_getContext(codecCont->width,
                                            codecCont->height,
-                                           codecCont->pix_fmt,
-                                           codecCont->width,
-                                           codecCont->height,
-                                           PIX_FMT_RGB24, SWS_BICUBIC,
-                                           NULL, NULL, NULL);
+                                           codecCont->pix_fmt, previewWidth,
+                                           previewHeight, PIX_FMT_RGB24,
+                                           SWS_BICUBIC, NULL, NULL, NULL);
     if (!scaleCont)
         return;
 
@@ -284,8 +284,8 @@ void MvPreviewGenerator::Generate(const path& mvPath, int64 time)
 //     SaveToBMPFile(previewPath, frameRGB.get(), codecCont->width,
 //                   codecCont->height);
     previewPath.replace_extension(L".jpg");
-    Jpeg::SaveToJPEGFile(previewPath, frameRGB.get(), codecCont->width,
-                         codecCont->height);
+    Jpeg::SaveToJPEGFile(previewPath, frameRGB.get(), previewWidth,
+                         previewHeight);
     if (callback_)
         callback_->Progress(mvPath.wstring());
 }

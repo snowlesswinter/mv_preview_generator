@@ -35,7 +35,7 @@ void Jpeg::SaveToJPEGFile(const path& jpegPath, AVFrame* frame, int width,
     comp.input_components = 3;
     comp.in_color_space = JCS_RGB;
     jpeg_set_defaults(&comp);
-    jpeg_set_quality(&comp, 30, true);
+    jpeg_set_quality(&comp, 80, true);
     jpeg_start_compress(&comp, true);
     while (comp.next_scanline < comp.image_height) {
         JSAMPROW data[1];

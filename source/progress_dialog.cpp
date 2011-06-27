@@ -74,8 +74,8 @@ BOOL ProgressDialog::OnInitDialog()
 LRESULT ProgressDialog::OnInitializing(WPARAM w, LPARAM l)
 {
     assert(!gen_);
-    assert(gen);
-    assert(totalFiles >= 0);
+    assert(w);
+    assert(l >= 0);
 
     gen_ = reinterpret_cast<MvPreviewGenerator*>(w);
     total_ = l;
