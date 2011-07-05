@@ -22,6 +22,7 @@
     <ClCompile Include="source\progress_dialog.cpp" />
     <ClCompile Include="source\preference.cpp" />
     <ClCompile Include="source\jpeg_tool.cpp" />
+    <ClCompile Include="source\preview_upload.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\targetver.h" />
@@ -36,6 +37,7 @@
     <ClInclude Include="source\progress_dialog.h" />
     <ClInclude Include="source\preference.h" />
     <ClInclude Include="source\jpeg_tool.h" />
+    <ClInclude Include="source\preview_upload.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource\mv_preview_generator.rc">

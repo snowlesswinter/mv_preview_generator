@@ -19,8 +19,11 @@
     <ClCompile Include="source\jpeg_tool.cpp" />
     <ClCompile Include="source\mv_preview_generator.cpp" />
     <ClCompile Include="source\mv_preview_generator_app.cpp" />
-    <ClCompile Include="source\mv_preview_generator_dialog.cpp" />
+    <ClCompile Include="source\mv_preview_generator_dialog.cpp">
+      <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</PreprocessToFile>
+    </ClCompile>
     <ClCompile Include="source\preference.cpp" />
+    <ClCompile Include="source\preview_upload.cpp" />
     <ClCompile Include="source\progress_dialog.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -32,6 +35,7 @@
     <ClInclude Include="source\mv_preview_generator_app.h" />
     <ClInclude Include="source\mv_preview_generator_dialog.h" />
     <ClInclude Include="source\preference.h" />
+    <ClInclude Include="source\preview_upload.h" />
     <ClInclude Include="source\progress_dialog.h" />
     <ClInclude Include="source\targetver.h" />
   </ItemGroup>
@@ -86,16 +90,17 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;CURL_STATICLIB;BUILDING_LIBCURL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <PreprocessToFile>false</PreprocessToFile>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>chromium.lib;dbghelp.lib;avcodec.lib;avformat.lib;avutil.lib;swscale.lib;libjpeg.a</AdditionalDependencies>
+      <AdditionalDependencies>chromium.lib;dbghelp.lib;avcodec.lib;avformat.lib;avutil.lib;swscale.lib;libjpeg.a;libcurl.lib;wldap32.lib</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
     </Link>
     <Midl>
@@ -128,7 +133,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <ShowProgress>NotSet</ShowProgress>
-      <AdditionalDependencies>chromium.lib;dbghelp.lib;avcodec.lib;avformat.lib;avutil.lib;swscale.lib;libjpeg.a</AdditionalDependencies>
+      <AdditionalDependencies>chromium.lib;dbghelp.lib;avcodec.lib;avformat.lib;avutil.lib;swscale.lib;libjpeg.a;libcurl.lib</AdditionalDependencies>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
