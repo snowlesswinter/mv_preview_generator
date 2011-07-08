@@ -1,3 +1,5 @@
+#include <vld.h>
+
 #include "mv_preview_generator_dialog.h"
 
 #include <memory>
@@ -11,6 +13,7 @@
 #include "mv_preview_generator.h"
 #include "progress_dialog.h"
 #include "preference.h"
+#include "preview_dialog.h"
 
 using std::wstring;
 using std::wstringstream;
@@ -98,11 +101,23 @@ int OnEditKillFocus(CEdit* editControl, wstring* record)
 }
 
 void StartGenerating(GeneratorCallback* callback, const path& mvPath,
-                     int64 time, bool recursive)
+                     const path& previewPath, int64 time, bool recursive)
 {
     MvPreviewGenerator gen(callback);
-    gen.StartGenerating(mvPath, time, recursive);
+    gen.StartGenerating(mvPath, previewPath, time, recursive);
 }
+}
+
+void StartGeneratingFromDataBase(GeneratorCallback* callback,
+                                 const path& previewPath, int64 time)
+{
+    CoInitialize(NULL);
+    MvPreviewGenerator gen(callback);
+    wstring dbServer = L"192.168.0.206\\mssql2008";
+    wstring userName = L"sa";
+    wstring password = L"ivwihicnck";
+    gen.StartGenerating(dbServer, userName, password, previewPath, time);
+    CoUninitialize();
 }
 
 class CAboutDlg : public CDialogEx
@@ -145,6 +160,7 @@ CMvPreviewGeneratorDialog::CMvPreviewGeneratorDialog(CWnd* parent /*=NULL*/)
     , lastMin_()
     , lastSec_()
     , thread_("generating")
+    , fromDbServer_()
 {
 }
 
@@ -158,6 +174,7 @@ void CMvPreviewGeneratorDialog::DoDataExchange(CDataExchange* dataExch)
     DDX_Control(dataExch, IDC_EDIT_MIN, previewAtMin_);
     DDX_Control(dataExch, IDC_EDIT_SEC, previewAtSec_);
     DDX_Control(dataExch, IDC_CHECK_RECURSIVE, recursive_);
+    DDX_Control(dataExch, IDC_CHECK_FROM_DB_SERVER, fromDbServer_);
 }
 
 BEGIN_MESSAGE_MAP(CMvPreviewGeneratorDialog, CDialogEx)
@@ -184,6 +201,8 @@ BEGIN_MESSAGE_MAP(CMvPreviewGeneratorDialog, CDialogEx)
                     &CMvPreviewGeneratorDialog::OnEnKillfocusEditSec)
     ON_BN_CLICKED(IDC_CHECK_RECURSIVE,
                   &CMvPreviewGeneratorDialog::OnBnClickedCheckRecursive)
+    ON_BN_CLICKED(IDC_CHECK_FROM_DB_SERVER,
+                  &CMvPreviewGeneratorDialog::OnBnClickedCheckFromDbServer)
 END_MESSAGE_MAP()
 
 // CMvPreviewGeneratorDialog message handlers
@@ -244,6 +263,13 @@ BOOL CMvPreviewGeneratorDialog::OnInitDialog()
 
     bool r = Preference::get()->IsRecursive();
     recursive_.SetCheck(r ? 1 : 0);
+
+    fromDbServer_.SetCheck(1);
+
+    // Some controls are obsoleted.
+    mvLocation_.EnableWindow(FALSE);
+    browseForMv_.EnableWindow(FALSE);
+    recursive_.EnableWindow(FALSE);
     return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
@@ -308,6 +334,7 @@ void CMvPreviewGeneratorDialog::OnBnClickedButtonGen()
         mvLocation_.AddString(text);
 
     previewLocation_.GetWindowText(text);
+    path previewLocation(text.GetBuffer());
     if (previewLocation_.FindString(-1, text) < 0)
         previewLocation_.AddString(text);
 
@@ -317,14 +344,24 @@ void CMvPreviewGeneratorDialog::OnBnClickedButtonGen()
     int s;
     s1 >> m;
     s2 >> s;
-
     s = s + m * 60;
+
+    if (boost::filesystem3::is_regular_file(mvLocation)) {
+        PreviewDialog p(this, mvLocation, text.GetBuffer(), s * 1000I64);
+        p.DoModal();
+        return;
+    }
+
     ProgressDialog d(this);
     thread_.Start();
     thread_.message_loop()->PostTask(
         FROM_HERE,
-        NewRunnableFunction(StartGenerating, &d, mvLocation, s * 1000I64,
-                            !!recursive_.GetCheck()));
+        !!fromDbServer_.GetCheck() ? 
+            NewRunnableFunction(StartGeneratingFromDataBase, &d,
+                                previewLocation, s * 1000I64) :
+            NewRunnableFunction(StartGenerating, &d, mvLocation,
+                                previewLocation, s * 1000I64,
+                                !!recursive_.GetCheck()));
     d.DoModal();
     thread_.Stop();
 }
@@ -436,4 +473,12 @@ void CMvPreviewGeneratorDialog::OnEnKillfocusEditSec()
 void CMvPreviewGeneratorDialog::OnBnClickedCheckRecursive()
 {
     Preference::get()->SetRecursive(!!recursive_.GetCheck());
+}
+
+void CMvPreviewGeneratorDialog::OnBnClickedCheckFromDbServer()
+{
+    int fromDbServer = fromDbServer_.GetCheck();
+    mvLocation_.EnableWindow(!fromDbServer);
+    browseForMv_.EnableWindow(!fromDbServer);
+    recursive_.EnableWindow(!fromDbServer);
 }

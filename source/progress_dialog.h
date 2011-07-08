@@ -2,7 +2,7 @@
 #define _PROGRESS_DIALOG_H_
 
 #include "mfc_predefine.h"
-#include "afxwin.h"
+#include <afxwin.h>
 
 #include "mv_preview_generator.h"
 #include "resource/resource.h" // main symbols

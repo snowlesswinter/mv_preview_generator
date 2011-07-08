@@ -13,6 +13,10 @@ extern "C" {
 #include "libswscale/swscale.h"
 }
 #include "jpeg_tool.h"
+#include "util.h"
+
+#import "msado15.dll" no_namespace rename("EOF", "ADOEOF")
+#include "msado15.tlh"
 
 using std::list;
 using std::unique_ptr;
@@ -20,31 +24,27 @@ using std::string;
 using std::wstring;
 using std::ofstream;
 using boost::filesystem3::path;
-using boost::filesystem3::exists;
 using boost::filesystem3::directory_iterator;
+using boost::filesystem3::exists;
 using boost::filesystem3::is_directory;
 using boost::filesystem3::is_regular_file;
 using boost::filesystem3::filesystem_error;
 using boost::algorithm::iequals;
+using boost::algorithm::replace_head;
 
 namespace {
-string WideCharToMultiByte(const wstring& from)
+void FreeAVFrame(AVFrame* f)
 {
-    int size = ::WideCharToMultiByte(CP_ACP, 0, from.c_str(), -1, NULL, 0, NULL,
-                                     NULL);
-    if (1 > size)
-        return string();
-
-    unique_ptr<char[]> dst(new char[size]);
-    ::WideCharToMultiByte(CP_ACP, 0, from.c_str(), -1, dst.get(), size, NULL,
-                          NULL);
-    return string(dst.get());
+    if (f) {
+        avpicture_free(reinterpret_cast<AVPicture*>(f));
+        av_free(f);
+    }
 }
 
-void SaveToBMPFile(const path& bmpPath, AVFrame* frame, int width, int height)
+void SaveToBMPFile(const path& bmpPath, AVFrame* frame)
 {
     assert(frame);
-    const int dataSize = ((width * 3 + 3) / 4) * 4 * height;
+    const int dataSize = ((frame->width * 3 + 3) / 4) * 4 * frame->height;
 
     BITMAPFILEHEADER fileHeader = {0};
     BITMAPINFOHEADER infoHeader = {0};
@@ -54,8 +54,8 @@ void SaveToBMPFile(const path& bmpPath, AVFrame* frame, int width, int height)
     fileHeader.bfOffBits = sizeof(fileHeader);
 
     infoHeader.biSize = sizeof(infoHeader);
-    infoHeader.biWidth = width;
-    infoHeader.biHeight = -height;
+    infoHeader.biWidth = frame->width;
+    infoHeader.biHeight = -frame->height;
     infoHeader.biPlanes = 1;
     infoHeader.biBitCount = 24;
     infoHeader.biCompression = BI_RGB;
@@ -69,14 +69,14 @@ void SaveToBMPFile(const path& bmpPath, AVFrame* frame, int width, int height)
     bmpFile.write(reinterpret_cast<char*>(&fileHeader), sizeof(fileHeader));
     bmpFile.write(reinterpret_cast<char*>(&infoHeader), sizeof(infoHeader));
 
-    for (int y = 0; y < height; ++y) {
+    for (int y = 0; y < frame->height; ++y) {
         char* data = reinterpret_cast<char*>(
             frame->data[0] + y * frame->linesize[0]);
 
         for (int x = 0; x < frame->linesize[0] - 3; x += 3)
             std::swap(data[x], data[x + 1]);
 
-        bmpFile.write(data, width * 3);
+        bmpFile.write(data, frame->width * 3);
     }
 }
 
@@ -84,6 +84,16 @@ void ReportDone(GeneratorCallback* c)
 {
     if (c)
         c->Done();
+}
+
+void UnifySlash(wstring* s)
+{
+    assert(s);
+    if (!s->empty()) {
+        auto i = s->back();
+        if (('/' != i) && ('\\' != i))
+            *s += '/';
+    }
 }
 }
 
@@ -97,7 +107,8 @@ MvPreviewGenerator::~MvPreviewGenerator()
 {
 }
 
-void MvPreviewGenerator::StartGenerating(const path& mvPath, int64 time,
+void MvPreviewGenerator::StartGenerating(const path& mvPath,
+                                         const path& previewPath, int64 time,
                                          bool recursive)
 {
     unique_ptr<GeneratorCallback, void (*)(GeneratorCallback*)> autoReportDone(
@@ -113,7 +124,7 @@ void MvPreviewGenerator::StartGenerating(const path& mvPath, int64 time,
 
     if (is_regular_file(mvPath)) {
         if (iequals(mvPath.extension().string(), L".mkv"))
-            Generate(mvPath, time);
+            Generate(mvPath, previewPath, time);
 
         return;
     }
@@ -122,9 +133,93 @@ void MvPreviewGenerator::StartGenerating(const path& mvPath, int64 time,
     pending.push_back(mvPath);
     do {
         const path& t = pending.front();
-        SearchAndGenerate(mvPath, &pending, time, recursive);
+        SearchAndGenerate(mvPath, previewPath, &pending, time, recursive);
         pending.pop_front();
-    } while (pending.size());
+    } while (pending.size() && !cancelFlag_);
+}
+
+void MvPreviewGenerator::StartGenerating(const wstring& dbServer,
+                                         const wstring& userName,
+                                         const wstring& password,
+                                         const path& previewPath, int64 time)
+{
+    unique_ptr<GeneratorCallback, void (*)(GeneratorCallback*)> autoReportDone(
+        callback_, ReportDone);
+
+    av_register_all();
+    avcodec_register_all();
+
+    _ConnectionPtr connection;
+    _RecordsetPtr records;
+    try {
+        HRESULT r = connection.CreateInstance(__uuidof(Connection));
+        if (!connection)
+            return;
+
+        wstring s = L"Driver=SQL Server;Server=" + dbServer +
+            L";Database=KG_MediaInfo;Uid=" + userName + L";Pwd=" +
+            password + L";";
+        _bstr_t forConn(s.c_str());
+        connection->Open(forConn, "", "", adConnectUnspecified);
+        records.CreateInstance(__uuidof(Recordset));
+
+        do {
+            if (!records)
+                break;
+
+            records->PutCacheSize(200000);
+            _bstr_t forExec(L"SELECT 文件路径, 旧哈希值 FROM "
+                            L"CHECKED_ENCODE_FILE_INFO");
+            records->Open(forExec,
+                          _variant_t(static_cast<IDispatch*>(connection), true),
+                          adOpenStatic, adLockReadOnly, adCmdText);
+
+            if (callback_)
+                callback_->Initializing(this, records->GetRecordCount());
+
+            while (!records->ADOEOF && !cancelFlag_) {
+                _variant_t index;
+                index.vt = VT_I2;
+                index.iVal = 0;
+                FieldPtr field0 = records->GetFields()->GetItem(&index);
+                _variant_t fileName = field0->GetValue();
+                index.iVal = 1;
+                FieldPtr field1 = records->GetFields()->GetItem(&index);
+                _variant_t md5 = field1->GetValue();
+                if ((VT_NULL != fileName.vt) && (VT_NULL != md5.vt)) {
+                    wstring url =
+                        static_cast<wchar_t*>(static_cast<_bstr_t>(fileName));
+                    if (url.length() > 27) {
+                        if ('_' == url[26])
+                            replace_head(url, 15, L"h:");
+                        else
+                            replace_head(url, 15, L"d:");
+
+                        wstring s = previewPath.wstring();
+                        UnifySlash(&s);
+                        s += static_cast<wchar_t*>(static_cast<_bstr_t>(md5));
+                        s += L".jpg";
+                        if (!exists(s))
+                            Generate(url, s, time);
+                        else if (callback_)
+                            callback_->Progress(url);
+                    }
+                }
+
+                records->MoveNext();
+            }
+        } while (0);
+    } catch (_com_error& e) {
+        (e);
+    }
+
+    if (connection)
+        if (connection->State == adStateOpen)
+            connection->Close();
+
+    if (records)
+        if (records->State == adStateOpen)
+            records->Close();
 }
 
 int MvPreviewGenerator::CalculateNumFiles(const path& mvPath, bool recursive)
@@ -163,12 +258,13 @@ int MvPreviewGenerator::CalculateNumFiles(const path& mvPath, bool recursive)
 }
 
 void MvPreviewGenerator::SearchAndGenerate(const path& mvPath,
+                                           const path& previewPath, 
                                            list<path>* pending, int64 time,
                                            bool recursive)
 {
     try {
-        for (directory_iterator i(mvPath), e = directory_iterator(); i != e;
-            ++i) {
+        for (directory_iterator i(mvPath), e = directory_iterator();
+            ((i != e) && !cancelFlag_); ++i) {
             if (is_directory(i->path())) {
                 if (recursive)
                     pending->push_back(i->path());
@@ -179,17 +275,18 @@ void MvPreviewGenerator::SearchAndGenerate(const path& mvPath,
             if (!iequals(i->path().extension().string(), L".mkv"))
                 continue;
 
-            Generate(i->path(), time);
+            Generate(i->path(), previewPath, time);
         }
     } catch (const filesystem_error& ex) {
         (ex);
     }
 }
 
-void MvPreviewGenerator::Generate(const path& mvPath, int64 time)
+void MvPreviewGenerator::Generate(const path& mvPath, const path& previewPath,
+                                  int64 time)
 {
     assert(is_regular_file(mvPath));
-    assert(iequals(mvPath.extension().string(), L".mkv"));
+    assert(iequals(mvPath.extension().wstring(), L".mkv"));
 
     if (cancelFlag_)
         return;
@@ -241,8 +338,10 @@ void MvPreviewGenerator::Generate(const path& mvPath, int64 time)
         if (av_read_frame(media, &packet) < 0)
             return;
 
-        if (packet.stream_index != videoStreamIndex)
+        if (packet.stream_index != videoStreamIndex) {
+            av_free_packet(&packet);
             continue;
+        }
         
         // Decode.
         int frameFinished;
@@ -257,35 +356,37 @@ void MvPreviewGenerator::Generate(const path& mvPath, int64 time)
     } while (!cancelFlag_);
 
     // Initialize RGB format frame.
-    unique_ptr<AVFrame, void (*)(void*)> frameRGB(avcodec_alloc_frame(),
-                                                  av_free);
+    unique_ptr<AVFrame, void (*)(AVFrame*)> frameRGB(avcodec_alloc_frame(),
+                                                     FreeAVFrame);
     const int previewWidth = codecCont->width / 6;
     const int previewHeight = codecCont->height / 6;
     const int bufSize = avpicture_get_size(PIX_FMT_RGB24, previewWidth,
                                            previewHeight);
     avpicture_fill(reinterpret_cast<AVPicture*>(frameRGB.get()),
-                    reinterpret_cast<uint8_t*>(av_malloc(bufSize)),
-                    PIX_FMT_RGB24, previewWidth, previewHeight);
+                   reinterpret_cast<uint8_t*>(av_malloc(bufSize)),
+                   PIX_FMT_RGB24, previewWidth, previewHeight);
+    frameRGB->width = previewWidth;
+    frameRGB->height = previewHeight;
 
-    SwsContext* scaleCont = sws_getContext(codecCont->width,
-                                           codecCont->height,
-                                           codecCont->pix_fmt, previewWidth,
-                                           previewHeight, PIX_FMT_RGB24,
-                                           SWS_BICUBIC, NULL, NULL, NULL);
+    unique_ptr<SwsContext, void (*)(SwsContext*)> scaleCont(
+        sws_getContext(codecCont->width, codecCont->height, codecCont->pix_fmt,
+                       previewWidth, previewHeight, PIX_FMT_RGB24, SWS_BICUBIC,
+                       NULL, NULL, NULL),
+        sws_freeContext);
     if (!scaleCont)
         return;
 
-    sws_scale(scaleCont, frame.get()->data, frame.get()->linesize, 0,
+    sws_scale(scaleCont.get(), frame.get()->data, frame.get()->linesize, 0,
               codecCont->height, frameRGB.get()->data,
               frameRGB.get()->linesize);
 
-    path previewPath(mvPath);
-    previewPath.replace_extension(L".bmp");
-//     SaveToBMPFile(previewPath, frameRGB.get(), codecCont->width,
-//                   codecCont->height);
-    previewPath.replace_extension(L".jpg");
-    Jpeg::SaveToJPEGFile(previewPath, frameRGB.get(), previewWidth,
-                         previewHeight);
+    wstring s = previewPath.wstring();
+    if (is_directory(previewPath)) {
+        UnifySlash(&s);
+        s += mvPath.stem().wstring() + L".jpg";
+    }
+
+    Jpeg::SaveToJPEGFile(s, frameRGB.get());
     if (callback_)
         callback_->Progress(mvPath.wstring());
 }

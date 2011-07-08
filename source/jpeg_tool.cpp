@@ -15,8 +15,7 @@ extern "C" {
 using std::unique_ptr;
 using boost::filesystem3::path;
 
-void Jpeg::SaveToJPEGFile(const path& jpegPath, AVFrame* frame, int width,
-                          int height)
+void Jpeg::SaveToJPEGFile(const path& jpegPath, AVFrame* frame)
 {
     assert(frame);
     unique_ptr<FILE, int (*)(FILE*)> jpegFile(
@@ -30,8 +29,8 @@ void Jpeg::SaveToJPEGFile(const path& jpegPath, AVFrame* frame, int width,
     jpeg_create_compress(&comp);
     jpeg_stdio_dest(&comp, jpegFile.get());
 
-    comp.image_width = width;
-    comp.image_height = height;
+    comp.image_width = frame->width;
+    comp.image_height = frame->height;
     comp.input_components = 3;
     comp.in_color_space = JCS_RGB;
     jpeg_set_defaults(&comp);

@@ -23,11 +23,14 @@
       <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</PreprocessToFile>
     </ClCompile>
     <ClCompile Include="source\preference.cpp" />
+    <ClCompile Include="source\preview_dialog.cpp" />
     <ClCompile Include="source\preview_upload.cpp" />
     <ClCompile Include="source\progress_dialog.cpp" />
+    <ClCompile Include="source\util.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource\resource.h" />
+    <ClInclude Include="source\basictypes.h" />
     <ClInclude Include="source\hardware_env.h" />
     <ClInclude Include="source\jpeg_tool.h" />
     <ClInclude Include="source\mfc_predefine.h" />
@@ -35,9 +38,11 @@
     <ClInclude Include="source\mv_preview_generator_app.h" />
     <ClInclude Include="source\mv_preview_generator_dialog.h" />
     <ClInclude Include="source\preference.h" />
+    <ClInclude Include="source\preview_dialog.h" />
     <ClInclude Include="source\preview_upload.h" />
     <ClInclude Include="source\progress_dialog.h" />
     <ClInclude Include="source\targetver.h" />
+    <ClInclude Include="source\util.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource\mv_preview_generator.rc" />
@@ -52,7 +57,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
-    <UseOfMfc>Dynamic</UseOfMfc>
+    <UseOfMfc>Static</UseOfMfc>
     <PlatformToolset>Windows7.1SDK</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -60,7 +65,7 @@
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <UseOfMfc>Dynamic</UseOfMfc>
+    <UseOfMfc>Static</UseOfMfc>
     <PlatformToolset>Windows7.1SDK</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -76,13 +81,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(BOOST_DIR);source/third_party/chromium;package/ffmpeg/include;package/jpeg/include;source;.;$(IncludePath)</IncludePath>
-    <LibraryPath>$(BOOST_DIR)\stage\lib;lib\$(Configuration);package\ffmpeg\lib;package\jpeg\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(BOOST_DIR)\stage\lib;lib\$(Configuration);package\ffmpeg\lib;package\jpeg\lib;$(CommonProgramFiles)\system\ado;$(LibraryPath)</LibraryPath>
     <IntDir>$(SolutionDir)$(Configuration)\obj\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(BOOST_DIR);source/third_party/chromium;package/ffmpeg/include;package/jpeg/include;source;.;$(IncludePath)</IncludePath>
-    <LibraryPath>$(BOOST_DIR)\stage\lib;lib\$(Configuration);package\ffmpeg\lib;package\jpeg\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(BOOST_DIR)\stage\lib;lib\$(Configuration);package\ffmpeg\lib;package\jpeg\lib;$(CommonProgramFiles)\system\ado;$(LibraryPath)</LibraryPath>
     <IntDir>$(SolutionDir)$(Configuration)\obj\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -93,15 +98,17 @@
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;CURL_STATICLIB;BUILDING_LIBCURL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <PreprocessToFile>false</PreprocessToFile>
+      <AdditionalIncludeDirectories>$(IntDir)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>chromium.lib;dbghelp.lib;avcodec.lib;avformat.lib;avutil.lib;swscale.lib;libjpeg.a;libcurl.lib;wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>uafxcwd.lib;libcmtd.lib;chromium.lib;dbghelp.lib;avcodec.lib;avformat.lib;avutil.lib;swscale.lib;libjpeg.a;libcurl.lib;wldap32.lib</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
+      <IgnoreSpecificDefaultLibraries>uafxcwd.lib;libcmtd.lib</IgnoreSpecificDefaultLibraries>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -121,11 +128,12 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;CURL_STATICLIB;BUILDING_LIBCURL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(IntDir)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -133,7 +141,10 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <ShowProgress>NotSet</ShowProgress>
-      <AdditionalDependencies>chromium.lib;dbghelp.lib;avcodec.lib;avformat.lib;avutil.lib;swscale.lib;libjpeg.a;libcurl.lib</AdditionalDependencies>
+      <AdditionalDependencies>uafxcw.lib;libcmt.lib;chromium.lib;dbghelp.lib;avcodec.lib;avformat.lib;avutil.lib;swscale.lib;libjpeg.a;libcurl.lib;wldap32.lib</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>uafxcw.lib;libcmt.lib</IgnoreSpecificDefaultLibraries>
+      <AddModuleNamesToAssembly>
+      </AddModuleNamesToAssembly>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>

@@ -33,8 +33,6 @@ BOOL CMvPreviewGeneratorApp::InitInstance()
     assert(!atExit);
     atExit = new base::AtExitManager;
 
-    CoInitialize(NULL);
-
     // InitCommonControlsEx() is required on Windows XP if an application
     // manifest specifies use of ComCtl32.dll version 6 or later to enable
     // visual styles.  Otherwise, any window creation will fail.
@@ -67,8 +65,6 @@ BOOL CMvPreviewGeneratorApp::InitInstance()
 int CMvPreviewGeneratorApp::ExitInstance()
 {
     int result = CWinAppEx::ExitInstance();
-
-    CoUninitialize();
 
     assert(atExit);
     if (atExit) {

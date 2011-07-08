@@ -29,17 +29,25 @@ public:
     explicit MvPreviewGenerator(GeneratorCallback* callback);
     ~MvPreviewGenerator();
 
-    void StartGenerating(const boost::filesystem3::path& mvPath, int64 time,
-                         bool recursive);
+    void StartGenerating(const boost::filesystem3::path& mvPath,
+                         const boost::filesystem3::path& previewPath,
+                         int64 time, bool recursive);
+    void StartGenerating(const std::wstring& dbServer,
+                         const std::wstring& userName,
+                         const std::wstring& password,
+                         const boost::filesystem3::path& previewPath,
+                         int64 time);
     void Cancel() { cancelFlag_ = true; }
 
 private:
     int CalculateNumFiles(const boost::filesystem3::path& mvPath,
                           bool recursive);
     void SearchAndGenerate(const boost::filesystem3::path& mvPath,
+                           const boost::filesystem3::path& previewPath,
                            std::list<boost::filesystem3::path>* pending,
                            int64 time, bool recursive);
-    void Generate(const boost::filesystem3::path& mvPath, int64 time);
+    void Generate(const boost::filesystem3::path& mvPath,
+                  const boost::filesystem3::path& previewPath, int64 time);
 
     GeneratorCallback* callback_;
     bool cancelFlag_;

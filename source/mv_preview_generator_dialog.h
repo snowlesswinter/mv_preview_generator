@@ -4,7 +4,7 @@
 #include <string>
 
 #include "mfc_predefine.h"
-#include "afxwin.h"
+#include <afxwin.h>
 
 #include "third_party/chromium/base/thread.h"
 #include "resource/resource.h" // main symbols
@@ -35,6 +35,7 @@ protected:
     afx_msg void OnEnUpdateEditSec();
     afx_msg void OnEnKillfocusEditSec();
     afx_msg void OnBnClickedCheckRecursive();
+    afx_msg void OnBnClickedCheckFromDbServer();
     DECLARE_MESSAGE_MAP()
 
 private:
@@ -50,4 +51,5 @@ private:
     std::wstring lastMin_;
     std::wstring lastSec_;
     base::Thread thread_;
+    CButton fromDbServer_;
 };

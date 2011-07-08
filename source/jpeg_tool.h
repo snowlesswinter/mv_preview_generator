@@ -15,7 +15,7 @@ class Jpeg
 {
 public:
     static void SaveToJPEGFile(const boost::filesystem3::path& jpegPath,
-                               AVFrame* frame, int width, int height);
+                               AVFrame* frame);
 
 private:
     Jpeg();

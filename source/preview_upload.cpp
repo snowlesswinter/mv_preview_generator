@@ -10,6 +10,7 @@
 extern "C" {
 #include "third_party/curl/lib/curl_md5.h"
 };
+#include "util.h"
 
 using std::unique_ptr;
 using std::string;
@@ -20,21 +21,6 @@ using boost::gregorian::day_clock;
 using boost::gregorian::to_iso_string;
 using boost::filesystem3::path;
 using boost::filesystem3::file_size;
-
-namespace {
-string WideCharToMultiByte(const wstring& from)
-{
-    int size = ::WideCharToMultiByte(CP_ACP, 0, from.c_str(), -1, NULL, 0, NULL,
-                                     NULL);
-    if (1 > size)
-        return string();
-
-    unique_ptr<char[]> dst(new char[size]);
-    ::WideCharToMultiByte(CP_ACP, 0, from.c_str(), -1, dst.get(), size, NULL,
-                          NULL);
-    return string(dst.get());
-}
-}
 
 CPreviewUpload::CPreviewUpload()
 {
