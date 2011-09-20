@@ -346,12 +346,6 @@ void CMvPreviewGeneratorDialog::OnBnClickedButtonGen()
     s2 >> s;
     s = s + m * 60;
 
-    if (boost::filesystem3::is_regular_file(mvLocation)) {
-        PreviewDialog p(this, mvLocation, text.GetBuffer(), s * 1000I64);
-        p.DoModal();
-        return;
-    }
-
     ProgressDialog d(this);
     thread_.Start();
     thread_.message_loop()->PostTask(

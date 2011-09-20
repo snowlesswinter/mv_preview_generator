@@ -1,7 +1,6 @@
 #ifndef _PREFERENCE_H_
 #define _PREFERENCE_H_
 
-#include <fstream>
 #include <string>
 
 #include "third_party/chromium/base/singleton.h"
@@ -24,7 +23,11 @@ public:
     void SetRecursive(bool r) { recursive_ = r; }
 
 private:
-    std::wfstream storage_;
+    std::wstring GetProfileString(const wchar_t* appName,
+                                  const wchar_t* keyName,
+                                  const wchar_t* defaultValue);
+
+    std::wstring storageFile_;
     std::wstring mvLocation_;
     std::wstring previewLocation_;
     int previewAtMin_;

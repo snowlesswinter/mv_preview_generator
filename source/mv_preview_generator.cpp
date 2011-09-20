@@ -14,6 +14,7 @@ extern "C" {
 }
 #include "jpeg_tool.h"
 #include "util.h"
+#include "preview_upload.h"
 
 #import "msado15.dll" no_namespace rename("EOF", "ADOEOF")
 #include "msado15.tlh"
@@ -169,7 +170,8 @@ void MvPreviewGenerator::StartGenerating(const wstring& dbServer,
 
             records->PutCacheSize(200000);
             _bstr_t forExec(L"SELECT 文件路径, 旧哈希值 FROM "
-                            L"CHECKED_ENCODE_FILE_INFO");
+                            L"CHECKED_ENCODE_FILE_INFO "
+                            L"WHERE 序号 BETWEEN 75696 AND 77503");
             records->Open(forExec,
                           _variant_t(static_cast<IDispatch*>(connection), true),
                           adOpenStatic, adLockReadOnly, adCmdText);
@@ -199,10 +201,12 @@ void MvPreviewGenerator::StartGenerating(const wstring& dbServer,
                         UnifySlash(&s);
                         s += static_cast<wchar_t*>(static_cast<_bstr_t>(md5));
                         s += L".jpg";
-                        if (!exists(s))
+                        if (!exists(s)) {
                             Generate(url, s, time);
-                        else if (callback_)
+                            CPreviewUpload::Upload(s);
+                        } else if (callback_) {
                             callback_->Progress(url);
+                        }
                     }
                 }
 

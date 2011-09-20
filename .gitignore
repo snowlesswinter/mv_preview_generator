@@ -1,0 +1,9 @@
+
+/Debug
+/Release
+/lib
+*.suo
+*.aps
+*.sdf
+*.user
+*.ini

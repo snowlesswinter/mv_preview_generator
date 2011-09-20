@@ -51,7 +51,14 @@ bool CPreviewUpload::Upload(const path& previewPath)
         md5 += s.str();
     }
 
-    const int fileSize = static_cast<int>(file_size(previewPath));
+    int fileSize = 0;
+    try {
+        fileSize = static_cast<int>(file_size(previewPath));
+    } catch (boost::filesystem3::filesystem_error& e) {
+        (e);
+        return false;
+    }
+
     unique_ptr<FILE, int (*)(FILE*)> previewFile(
         _wfopen(previewPath.wstring().c_str(), L"rb"), fclose);
     if (!previewFile)
